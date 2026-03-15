@@ -1,0 +1,197 @@
+/* =============================================================================
+   OpenTwin Dashboard — Styles
+   ============================================================================= */
+
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface-hover: #242836;
+  --border: #2e3347;
+  --text: #e4e4e7;
+  --text-muted: #8b8fa3;
+  --accent: #3b82f6;
+  --accent-hover: #60a5fa;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --critical: #dc2626;
+  --info: #06b6d4;
+  --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+header h1 { font-size: 1.2rem; font-weight: 600; }
+
+#status-bar {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.status-connected { color: var(--success); }
+.status-connected::before { content: '● '; }
+.status-disconnected { color: var(--error); }
+.status-disconnected::before { content: '● '; }
+
+nav {
+  display: flex;
+  gap: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+}
+
+.nav-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: 0.75rem 1.25rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.nav-btn:hover { color: var(--text); }
+.nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+main { padding: 1.5rem 2rem; }
+
+.view { display: none; }
+.view.active { display: block; }
+.hidden { display: none !important; }
+
+.toolbar {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+select, button {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+select:hover, button:hover { border-color: var(--accent); }
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.card:hover { border-color: var(--accent); }
+
+.card h4 { font-size: 0.95rem; margin-bottom: 0.5rem; }
+
+.card .type-badge {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.card .props {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-family: var(--mono);
+}
+
+.card .props .prop-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.15rem 0;
+}
+
+.detail-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  text-align: left;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+th { color: var(--text-muted); font-weight: 500; }
+
+.severity-critical { color: var(--critical); font-weight: 600; }
+.severity-error { color: var(--error); }
+.severity-warning { color: var(--warning); }
+.severity-info { color: var(--info); }
+
+.btn-sm {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  margin-right: 0.25rem;
+}
+
+.ontology-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.ontology-card h4 { color: var(--accent); font-size: 0.9rem; }
+.ontology-card .prop-list { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; }
+
+.binding-item {
+  background: var(--surface);
+  border-left: 3px solid var(--accent);
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  border-radius: 0 4px 4px 0;
+  font-size: 0.85rem;
+}
+
+.binding-item .layer { color: var(--accent); font-weight: 600; }
+.binding-item .source { color: var(--text-muted); }

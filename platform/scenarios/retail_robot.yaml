@@ -1,0 +1,305 @@
+# =============================================================================
+# OpenTwin Scenario: Retail Store Robot
+# Defined entirely with universal primitives — no domain-specific classes
+# =============================================================================
+
+object_types:
+  - type_id: mobile_robot
+    display_name: Mobile Robot
+    primary_key: robot_id
+    tags: [autonomous, mobile, indoor]
+    properties:
+      - name: robot_id
+        type: string
+      - name: name
+        type: string
+      - name: status
+        type: string
+        constraint:
+          enum_values: [idle, navigating, charging, error]
+        default_value: idle
+      - name: battery_level
+        type: float
+        unit: "%"
+        constraint: { min: 0, max: 100 }
+      - name: velocity
+        type: float
+        unit: m/s
+      - name: pose
+        type: geo_pose
+        spatial:
+          coordinate_frame: map
+          storage: inline
+      - name: lidar_scan
+        type: pointcloud
+        spatial:
+          format: pcd
+          coordinate_frame: base_link
+          storage: ref
+      - name: camera_image
+        type: image
+        spatial:
+          format: jpeg
+          storage: ref
+      - name: map
+        type: occupancy_grid
+        spatial:
+          format: pgm
+          coordinate_frame: map
+          resolution: 0.05
+          storage: ref
+
+  - type_id: zone
+    display_name: Zone
+    primary_key: zone_id
+    tags: [spatial, area]
+    properties:
+      - name: zone_id
+        type: string
+      - name: name
+        type: string
+      - name: zone_type
+        type: string
+        constraint:
+          enum_values: [aisle, checkout, storage, charging, entrance]
+      - name: bounds_min
+        type: json
+      - name: bounds_max
+        type: json
+      - name: floor_mesh
+        type: mesh
+        spatial:
+          format: gltf
+          coordinate_frame: world
+          storage: ref
+
+  - type_id: shelf
+    display_name: Shelf
+    primary_key: shelf_id
+    tags: [static, storage]
+    properties:
+      - name: shelf_id
+        type: string
+      - name: name
+        type: string
+      - name: capacity
+        type: int
+      - name: current_stock
+        type: int
+      - name: pose
+        type: geo_pose
+        spatial:
+          coordinate_frame: map
+      - name: model_3d
+        type: mesh
+        spatial:
+          format: gltf
+          storage: ref
+
+link_types:
+  - link_type_id: operates_in
+    display_name: Operates In
+    source_type_id: mobile_robot
+    target_type_id: zone
+    cardinality: "1:N"
+    inverse_name: has_robot
+
+  - link_type_id: located_in
+    display_name: Located In
+    source_type_id: shelf
+    target_type_id: zone
+    cardinality: "1:1"
+    inverse_name: contains_shelf
+
+actions:
+  - action_id: navigate_to
+    display_name: Navigate To
+    target_type_id: mobile_robot
+    parameters:
+      - name: target_x
+        type: float
+        required: true
+      - name: target_y
+        type: float
+        required: true
+      - name: target_yaw
+        type: float
+        required: false
+
+  - action_id: stop
+    display_name: Emergency Stop
+    target_type_id: mobile_robot
+    parameters: []
+
+  - action_id: go_charge
+    display_name: Go To Charging Station
+    target_type_id: mobile_robot
+    parameters: []
+
+functions:
+  - function_id: calc_utilization
+    display_name: Calculate Zone Utilization
+    inputs:
+      - name: zone_id
+        type: string
+    output_type: float
+    output_description: "Percentage of time zone has robot activity"
+
+rules:
+  - rule_id: low_battery_alert
+    display_name: Low Battery Alert
+    target_type_id: mobile_robot
+    conditions:
+      - property_name: battery_level
+        operator: lt
+        threshold: 20
+    actions:
+      - type: emit_alert
+        params:
+          severity: warning
+          title: Low Battery
+          message: "Robot battery below 20%"
+    priority: 10
+    cooldown_ms: 60000
+    enabled: true
+
+  - rule_id: critical_battery_return
+    display_name: Critical Battery Auto-Return
+    target_type_id: mobile_robot
+    conditions:
+      - property_name: battery_level
+        operator: lt
+        threshold: 10
+    actions:
+      - type: trigger_action
+        params:
+          action_id: go_charge
+      - type: emit_alert
+        params:
+          severity: critical
+          title: Critical Battery
+          message: "Robot returning to charging station"
+    priority: 20
+    cooldown_ms: 30000
+    enabled: true
+
+  - rule_id: low_stock_alert
+    display_name: Low Stock Alert
+    target_type_id: shelf
+    conditions:
+      - property_name: current_stock
+        operator: lt
+        threshold: 5
+    actions:
+      - type: emit_alert
+        params:
+          severity: info
+          title: Low Stock
+          message: "Shelf stock below threshold"
+    priority: 5
+    cooldown_ms: 300000
+    enabled: true
+
+workflows:
+  - workflow_id: inventory_check
+    display_name: Inventory Check Workflow
+    target_type_id: mobile_robot
+    steps:
+      - step_id: navigate_to_aisle
+        display_name: Navigate to Target Aisle
+        action_type: navigate_to
+        params: {}
+        proceed_condition:
+          property_name: status
+          expected_value: idle
+          timeout_ms: 120000
+      - step_id: scan_shelves
+        display_name: Scan Shelf Barcodes
+        action_type: scan_shelves
+        params:
+          scan_mode: barcode
+      - step_id: return_home
+        display_name: Return to Home Position
+        action_type: navigate_to
+        params:
+          target_x: 0
+          target_y: 0
+
+spatial_contexts:
+  - context_id: retail_floor
+    display_name: Retail Store Floor
+    coordinate_frame: enu
+    bounds:
+      min: [0, 0, 0]
+      max: [50, 30, 5]
+    representations:
+      - layer_id: floor_plan
+        type: occupancy_grid
+        source: maps/retail_floor.pgm
+        spatial:
+          resolution: 0.05
+      - layer_id: store_3d
+        type: mesh
+        source: models/retail_store.glb
+        spatial:
+          format: gltf
+
+edge:
+  device_profile:
+    profile_id: retail_robot_v1
+    display_name: Retail Robot v1
+    device_type: mobile_robot
+    urdf_path: urdf/retail_robot.urdf.xacro
+    namespace: /robot
+    sensors:
+      - sensor_id: front_lidar
+        sensor_type: lidar
+        connection:
+          protocol: ros2_topic
+          endpoint: /robot/scan
+        data_schema:
+          fields: { ranges: "float32[]", angle_min: "float32", angle_max: "float32" }
+          frame_id: laser_frame
+          frequency_hz: 10
+        coordinate_frame: laser_frame
+        transform_to_base: [0.2, 0, 0.3, 0, 0, 0, 1]
+      - sensor_id: rgb_camera
+        sensor_type: camera
+        connection:
+          protocol: ros2_topic
+          endpoint: /robot/camera/image_raw
+        data_schema:
+          fields: { data: "uint8[]", width: "uint32", height: "uint32" }
+          frame_id: camera_frame
+          frequency_hz: 30
+        coordinate_frame: camera_frame
+        transform_to_base: [0.15, 0, 0.4, 0, 0, 0, 1]
+      - sensor_id: imu
+        sensor_type: imu
+        connection:
+          protocol: ros2_topic
+          endpoint: /robot/imu
+        data_schema:
+          fields:
+            angular_velocity: "geometry_msgs/Vector3"
+            linear_acceleration: "geometry_msgs/Vector3"
+          frame_id: imu_frame
+          frequency_hz: 100
+    actuators:
+      - actuator_id: drive_base
+        actuator_type: motor
+        command_interface: /robot/cmd_vel
+        command_type: geometry_msgs/Twist
+
+  slam:
+    config_id: retail_slam
+    algorithm: slam_toolbox
+    map_format: occupancy_grid
+    resolution: 0.05
+
+  navigation:
+    config_id: retail_nav
+    planner: SmacPlanner2D
+    controller: RegulatedPurePursuitController
+    max_velocity: 0.5
+    max_angular_velocity: 1.0
